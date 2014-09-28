@@ -24,7 +24,7 @@ class bidcloud {
 	private $_token = null;
 	private $_token_secret = null;
 	private $_error_messages = array(
-		1 => ''
+		40 => "No result available. Returned:\n\n%s",
 	);
 
 	public function __construct($options = array()) {
@@ -43,6 +43,11 @@ class bidcloud {
 
 	private function _request($endpoint, $post = array()) {
 		try {
+			if ($post) {
+				foreach ($post as $k => $v) {
+					if (is_array($v)) $post[$k] = json_encode($v);
+				}
+			}
 			$post = array_merge(array(
 				'token' => $this->_token,
 				'token_secret' => $this->_token_secret,
@@ -86,6 +91,10 @@ class bidcloud {
 		return $result;
 	}
 
+	private function _check_options($options) {
+		if (!is_array($options)) $this->_error(31);
+	}
+
 	public function options($options) {
 		if (!$options) {
 			return;
@@ -95,7 +104,6 @@ class bidcloud {
 			$method = 'set_'.$key;
 			if (method_exists($this, $method)) {
 				$this->$method($value);
-				$this->set_dirty(true);
 			}
 			else {
 				$this->_error(30, $key);
@@ -122,5 +130,123 @@ class bidcloud {
 			$this->_error(35);
 		}
 		return $this;
+	}
+
+	public function token($param = array()) {
+		$ret = $this->_request('token', $param);
+		if ($ret) {
+			if (isset($ret['token']) && !$this->_token) $this->set_token($ret['token']);
+			if (isset($ret['token_secret']) && !$this->_token_secret) $this->set_token_secret($ret['token_secret']);
+		}
+		return $ret;
+	}
+
+	public function auction_add($param = array()) {
+		$ret = $this->_request('auction/add', $param);
+		return $ret;
+	}
+
+	public function auction_set($param = array()) {
+		$ret = $this->_request('auction/set', $param);
+		return $ret;
+	}
+
+	public function auction_remove($param = array()) {
+		$ret = $this->_request('auction/remove', $param);
+		return $ret;
+	}
+
+	public function auction_fetch_default($param = array()) {
+		$ret = $this->_request('auction/fetch/default', $param);
+		return $ret;
+	}
+
+	public function goods_add($param = array()) {
+		$ret = $this->_request('goods/add', $param);
+		return $ret;
+	}
+
+	public function goods_set($param = array()) {
+		$ret = $this->_request('goods/set', $param);
+		return $ret;
+	}
+
+	public function goods_remove($param = array()) {
+		$ret = $this->_request('goods/remove', $param);
+		return $ret;
+	}
+
+	public function goods_fetch_default($param = array()) {
+		$ret = $this->_request('goods/fetch/default', $param);
+		return $ret;
+	}
+
+	public function user_add($param = array()) {
+		$ret = $this->_request('user/add', $param);
+		return $ret;
+	}
+
+	public function user_set($param = array()) {
+		$ret = $this->_request('user/set', $param);
+		return $ret;
+	}
+
+	public function user_remove($param = array()) {
+		$ret = $this->_request('user/remove', $param);
+		return $ret;
+	}
+
+	public function session_key($param = array()) {
+		$ret = $this->_request('session/key', $param);
+		return $ret;
+	}
+
+	public function client() {
+		$data = isset($_POST) && is_array($_POST) ? $_POST : array();
+		$token = isset($data['token']) ? $data['token'] : '';
+		$token_secret = isset($data['token_secret']) ? $data['token_secret'] : '';
+		if ($token === $this->_token && $token_secret === $this->_token_secret) {
+			$endpoint = isset($data['endpoint']) ? $data['endpoint'] : '';
+			unset($data['endpoint']);
+			if ($endpoint && method_exists($this, '_client_'.$endpoint)) {
+				$res = $this->{'_client_'.$endpoint}($data);
+			}
+			else {
+				$res = array(
+					'code' => 90,
+					'message' => 'Wrong endpoint'
+				);
+			}
+		}
+		else {
+			$res = array(
+				'code' => 91,
+				'message' => 'Wrong auth'
+			);
+		}
+		ob_clean();
+		header('Content-Type: application/json');
+		echo json_encode($res);
+		exit();
+	}
+
+	private function _client_ping() {
+		return array(
+			'pong' => 1
+		);
+	}
+
+	private function _client_lot_add($data) {
+		return array(
+			'ok' => $this->callback_lot_add($data)
+		);
+	}
+
+	public function callback_lot_add($data) {
+		return true;
+	}
+
+	public function callback_lot_remove($data) {
+		return true;
 	}
 }
