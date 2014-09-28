@@ -80,7 +80,7 @@ foreach ($list as $el) {
 			bc.init(<?php echo json_encode(array(
 				'auction' => array(
 					123 => array(
-						'key' => $_SESSION['key']
+						'key' => @$_SESSION['key']
 					)
 				)
 			)) ?>);
